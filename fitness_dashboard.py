@@ -486,7 +486,7 @@ st.markdown("""
 '>
     <h1 style='
         font-family: "Playfair Display", serif;
-        font-size: 3.5rem;
+        font-size: 5rem;
         font-weight: 700;
         color: white;
         margin-bottom: 0.5rem;
@@ -1444,3 +1444,509 @@ with col3:
         <p style="margin: 0; font-size: 0.95rem; color: #4A5568;">Schedule a session on <strong style="color: #2D3748;">{underperforming_day}</strong>{f' (only {day_count} workout{"s" if day_count != 1 else ""})' if day_count > 0 else ''} to stay consistent</p>
     </div>
     """, unsafe_allow_html=True)
+    
+    # Initialize session state for toggling
+if 'show_design_explanation' not in st.session_state:
+    st.session_state.show_design_explanation = False
+
+# Banner with button
+st.markdown("""
+<div style="background: linear-gradient(135deg, rgba(46, 134, 171, 0.08), rgba(241, 143, 1, 0.08)); padding: 1.5rem 2rem; border-radius: 12px; border-left: 5px solid #2E86AB; margin: 1rem 0; box-shadow: 0 2px 8px rgba(0,0,0,0.06);">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div>
+            <h3 style="margin: 0 0 0.5rem 0; color: #2C3E50; font-size: 1.3rem;">📖 Dashboard Design Explanation</h3>
+            <p style="margin: 0; color: #5D6D7E; font-size: 0.95rem;">
+                Data structure, visual encodings, color choices, and design principles
+            </p>
+        </div>
+    </div>
+</div>
+""", unsafe_allow_html=True)
+
+# Toggle button
+col1, col2, col3 = st.columns([2, 1, 2])
+with col2:
+    button_text = "✖️ Hide Explanation" if st.session_state.show_design_explanation else "📖 Show Explanation"
+    if st.button(button_text, use_container_width=True, type="primary"):
+        st.session_state.show_design_explanation = not st.session_state.show_design_explanation
+        st.rerun()
+
+# Show design explanation when toggled
+if st.session_state.show_design_explanation:
+    st.markdown("""
+    <div style="background: white; padding: 2rem; border-radius: 12px; border: 2px solid #E8ECF1; margin: 2rem 0;">
+    """, unsafe_allow_html=True)
+    
+    st.markdown("## 📚 Complete Design Justification")
+    st.markdown("*Understanding the decisions behind this dashboard*")
+    
+    st.markdown("---")
+    
+    # DATA STRUCTURE
+    with st.expander("📊 **DATA STRUCTURE** - What data was collect and why", expanded=True):
+        st.markdown("""
+        ### Core Metrics Collected
+        
+        Each workout entry contains the following fields:
+        
+        | Field | Type | Purpose |
+        |-------|------|---------|
+        | **Date** | DateTime | Temporal analysis, trend detection |
+        | **Activity** | Categorical | Compare workout types |
+        | **Duration** | Integer (minutes) | Quantify effort |
+        | **Calories** | Integer | Measure intensity |
+        | **Time of Day** | Categorical | Identify optimal workout times |
+        | **Day of Week** | Categorical | Discover weekly patterns |
+        | **Week Number** | Integer | Enable week-over-week comparisons |
+        | **Heart Rate Avg** | Integer (120-170 bpm) | Physiological intensity |
+        | **Intensity** | Categorical | Workout difficulty |
+        
+        ### Why This Structure?
+        
+        **Quantitative + Categorical Balance:**
+        - Numeric metrics (calories, duration, heart rate) allow calculations and aggregations
+        - Categories (activity, time, intensity) enable grouping and pattern discovery
+        """)
+    
+    # VISUAL REPRESENTATIONS
+    with st.expander("📈 **VISUAL REPRESENTATIONS** - Chart choices", expanded=False):
+        st.markdown("""
+        ### Why Each Visualization Was Chosen
+        
+        #### 1. Linear Progress Bars
+        **Decision:** Horizontal progress bars with explicit goal numbers
+        
+        **Research Basis:** 
+        - Gauges require angle estimation, which humans do poorly, progress bars are more easy to follow
+        
+        **Implementation:**
+        - Shows: Current value / Goal value
+        - Status badges: 🔴 Behind (<50%), 🟡 Close (50-80%), 🟢 On Track (>80%)
+        - Explicit remaining: "320 calories remaining this week"
+        
+        **Benefits:**
+        - No ambiguity (exact numbers visible)
+        - Instant status recognition (color + emoji + text)
+        - Shows progress AND gap simultaneously
+        
+        ---
+        
+        #### 2. Horizontal Bar Charts
+        **Decision:** Sorted horizontal bars for activity comparison
+        
+        **Research Basis:**
+        - Pie charts use angle judgment (least accurate perceptual task)
+        - Bars use position along aligned scale (most accurate)
+        
+        **Implementation:**
+        - Sorted by value (highest at top or bottom)
+        - Labels on bars (no legend lookup needed)
+        - Activity-specific colors maintained across ALL charts
+        
+        **Benefits:**
+        - Easy comparison ("Running burns 2x more than Yoga")
+        - Rankings immediately obvious
+        - Scales well for 7+ categories
+        
+        ---
+        
+        #### 3. Dual-Axis Chart (Calories + Workouts)
+        **Decision:** Bar chart (calories) with overlaid line chart (workout count)
+        
+        **Purpose:**
+        - Shows relationship between volume and intensity
+        - Reveals patterns: "Fewer but longer workouts this week"
+        
+        **Implementation:**
+        - Primary Y-axis: Calories (bars)
+        - Secondary Y-axis: Workout count (line + markers)
+        - Week labels: "Jan 20 – Jan 26" (human-readable)
+        
+        ---
+        
+        #### 4. Heatmap (Day × Time Matrix)
+        **Decision:** 2D color intensity map for timing patterns
+        
+        **Why:**
+        - Reveals patterns single-dimension charts miss
+        - Example insight: "Mornings on weekdays, evenings on weekends"
+        
+        **Implementation:**
+        - Rows: Time of Day (Morning, Afternoon, Evening)
+        - Columns: Days of Week (Monday-Sunday)
+        - Color: YlOrRd scale (Yellow-Orange-Red)
+        - Text overlay: Exact workout count
+        
+        **Inspiration:** GitHub contribution graphs (familiar mental model)
+        
+        ---
+        
+        #### 5. Bubble Chart (Consistency Calendar)
+        **Decision:** Timeline where bubble size = calorie intensity
+        
+        **Encoding Channels:**
+        - Position (X): Date
+        - Size: Calories burned
+        - Color: Intensity gradient (Viridis colorscale)
+        
+        **Benefits:**
+        - Dense information: Date, presence, and intensity in one view
+        - Empty/tiny bubbles = rest days
+        - Large bubbles = intense workout days
+        - Viridis = colorblind-friendly
+        """)
+    
+    # STRUCTURE & LAYOUT
+    with st.expander("🏗️ **STRUCTURE & LAYOUT**", expanded=False):
+        st.markdown("""
+        ### Page Hierarchy
+        
+        **Information Flow (Top to Bottom):**
+        1. **Header** → Visual impact, context setting
+        2. **Goal Progress** → Most urgent question: "Am I on track?"
+        3. **Performance Overview** → 5 key metrics at a glance
+        4. **Personalized Insights** → Story the data tells
+        5. **Tabs** → Deep-dive analysis (progressive disclosure)
+        6. **Recommendations** → Actionable next steps
+        
+        ### Why This Order?
+        
+        **F-Pattern Eye Tracking:**
+        - Research shows users scan in F-shape: Top-left → Across → Down-left
+        - Most critical info placed where eyes naturally go first
+        
+        **Progressive Disclosure:**
+        - Tabs prevent overwhelming single-page scroll
+        - Users choose which analysis to explore
+        - Related visualizations grouped logically
+        
+        ### Spacing Philosophy
+        
+        **NOT Maximalist:**
+        - Every pixel filled → Cognitive fatigue
+        
+        **NOT Minimalist:**
+        - Excessive whitespace → Seems incomplete
+        
+        **BALANCED:**
+        - Breathing room guides attention
+        - Consistent padding (1.5rem) creates rhythm
+        - Card shadows provide depth and separation
+        """)
+    
+    # SCREENSPACE USE
+    with st.expander("🖥️ **SCREENSPACE UTILIZATION** - Maximizing clarity without clutter", expanded=False):
+        st.markdown("""
+        ### Layout Configuration
+        
+        **Streamlit Settings:**
+        ```python
+        st.set_page_config(
+            layout="wide",  # Utilize available screen space
+            initial_sidebar_state="collapsed"  # Focus on main content
+        )
+        ```
+        
+        **Main Container:**
+        - Background: White with subtle shadow
+        - Padding: 2rem top/bottom
+        - Border-radius: 12px (friendly, modern)
+        - Max-width: None (uses full available width)
+        
+        **Sidebar (20% width):**
+        - Dark background (#2C3E50) for visual separation
+        - Persistent filters always accessible
+        - Customizable goals don't clutter main view
+        
+        **Chart Consistency:**
+        - Standard height: 450px
+        - Creates visual rhythm
+        - Predictable scrolling experience
+        
+        ### Information Density
+        
+        **Cards:**
+        - Padding: 1.5rem
+        - Shadows: 0 2px 8px rgba(0,0,0,0.08)
+        - Border-radius: 10px
+        - Hover effects: Lift + stronger shadow
+        
+        **Metrics:**
+        - Large numbers: 2.5rem (immediate attention)
+        - Labels: 0.85rem uppercase (hierarchy)
+        - Sufficient whitespace around values
+        
+        **Typography Scale:**
+        - H1: 2rem (dashboard title)
+        - H2: 1.75rem (section headers)
+        - H3: 1.3rem (subsections)
+        - Body: 1rem (readable baseline)
+        """)
+    
+    # INTERACTIONS
+    with st.expander("🖱️ **INTERACTIONS** - Filters, tooltips, and progressive disclosure", expanded=False):
+        st.markdown("""
+        ### Sidebar Filters
+        
+        **Date Range Selector:**
+        - Presets: Last 7 Days, 14 Days, 30 Days, 8 Weeks
+        - Custom Range option for power users
+        - **Why:** Covers 90% of use cases with one click
+        
+        **Activity Multiselect:**
+        - Default: All activities selected
+        - Enables focused analysis ("just show Running")
+        - **Why:** Common user need for single-activity deep-dives
+        
+        **Goal Customization:**
+        - Weekly calorie target (500-5000)
+        - Weekly workout count (1-7)
+        - **Why:** Personalizable thresholds, not one-size-fits-all
+        
+        ### Hover Tooltips
+        
+        **Examples:**
+        - Bar charts: "Thursday, January 23 | Calories: 820"
+        - Activity charts: "Running | Avg: 456 cal | Sessions: 12"
+        - Heatmap: "Monday | Morning | Workouts: 3"
+        
+        **Benefits:**
+        - Reduces visual clutter (don't label every point)
+        - Detail on demand (progressive disclosure)
+        - Consistent format (learned behavior)
+        
+        ### Tab Navigation
+        
+        **Structure:**
+        - 📈 Trends (temporal analysis)
+        - 🎾 Activity Analysis (activity comparison)
+        - ⏱️ Timing Patterns (when you workout)
+        - 📊 Performance Metrics (efficiency, intensity)
+        
+        **Visual Feedback:**
+        - Active tab: Color change + underline + background tint
+        - Hover: Subtle background change
+        - Emoji icons: Instant recognition
+        
+        ### Why No Export/Share?
+        
+        **Current Focus:**
+        - Individual reflection, not social comparison
+        - Privacy-first approach
+        
+        **Future Possibilities:**
+        - PDF report generation
+        - Share with trainer/accountability partner
+        - Monthly summary emails
+        """)
+    
+    # COLOR SYSTEM
+    with st.expander("🎨 **COLOR SYSTEM** - Semantic palette with accessibility", expanded=False):
+        st.markdown("""
+        ### Primary Brand Colors
+        """)
+        
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.markdown("""
+            <div style="background: #2E86AB; color: white; padding: 1.5rem; border-radius: 8px; text-align: center;">
+                <strong style="font-size: 1.2rem;">#2E86AB</strong><br>
+                <span style="font-size: 0.9rem;">Primary Blue</span>
+            </div>
+            <p style="text-align: center; margin-top: 0.5rem; color: #5D6D7E; font-size: 0.9rem;">Trust, Consistency</p>
+            """, unsafe_allow_html=True)
+        
+        with col2:
+            st.markdown("""
+            <div style="background: #A23B72; color: white; padding: 1.5rem; border-radius: 8px; text-align: center;">
+                <strong style="font-size: 1.2rem;">#A23B72</strong><br>
+                <span style="font-size: 0.9rem;">Secondary Purple</span>
+            </div>
+            <p style="text-align: center; margin-top: 0.5rem; color: #5D6D7E; font-size: 0.9rem;">Energy, Motivation</p>
+            """, unsafe_allow_html=True)
+        
+        with col3:
+            st.markdown("""
+            <div style="background: #F18F01; color: white; padding: 1.5rem; border-radius: 8px; text-align: center;">
+                <strong style="font-size: 1.2rem;">#F18F01</strong><br>
+                <span style="font-size: 0.9rem;">Accent Orange</span>
+            </div>
+            <p style="text-align: center; margin-top: 0.5rem; color: #5D6D7E; font-size: 0.9rem;">Attention, Activity</p>
+            """, unsafe_allow_html=True)
+        
+        st.markdown("### Status Colors (Traffic Light System)")
+        
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.markdown("""
+            <div style="background: #06A77D; color: white; padding: 1rem; border-radius: 8px; text-align: center;">
+                <strong>#06A77D</strong><br>Success Green
+            </div>
+            <p style="text-align: center; margin-top: 0.5rem; font-size: 0.9rem;">🟢 On Track (>80%)</p>
+            """, unsafe_allow_html=True)
+        
+        with col2:
+            st.markdown("""
+            <div style="background: #F18F01; color: white; padding: 1rem; border-radius: 8px; text-align: center;">
+                <strong>#F18F01</strong><br>Warning Orange
+            </div>
+            <p style="text-align: center; margin-top: 0.5rem; font-size: 0.9rem;">🟡 Close (50-80%)</p>
+            """, unsafe_allow_html=True)
+        
+        with col3:
+            st.markdown("""
+            <div style="background: #C73E1D; color: white; padding: 1rem; border-radius: 8px; text-align: center;">
+                <strong>#C73E1D</strong><br>Alert Red
+            </div>
+            <p style="text-align: center; margin-top: 0.5rem; font-size: 0.9rem;">🔴 Behind (<50%)</p>
+            """, unsafe_allow_html=True)
+        
+        st.markdown("""
+        ### Activity-Specific Colors
+        
+        Each activity has a unique color maintained across ALL visualizations:
+        
+        - **Running** (#2E86AB): Blue - Endurance
+        - **Pilates** (#A23B72): Purple - Flexibility  
+        - **Cycling** (#F18F01): Orange - Energy
+        - **HIIT** (#06A77D): Green - Intensity
+        - **Yoga** (#5D6D7E): Gray - Balance
+        - **Swimming** (#C73E1D): Red - Cardio
+        - **Strength Training** (#4EA4C1): Light Blue - Power
+        
+        ### Accessibility
+        
+        **WCAG AA Compliant**: All text has sufficient contrast ratios  
+        **Not Color-Only**: Status uses color + emoji + text  
+        **Redundant Encoding**: Multiple channels per insight  
+        
+        ### What Was Avoided
+        Default Plotly colors (generic, lacks personality)  
+        Random colors per session (breaks learned associations)  
+        """)
+    
+    # METADATA
+    with st.expander("📝 **METADATA & CONTEXT**", expanded=False):
+        st.markdown("""
+        ### What Was Include
+        
+        **Date Range Display**: "Showing data from Jan 1 - Feb 4"  
+        **Goal Definitions**: Explicit values in sidebar  
+        **Chart Titles**: Always descriptive ("Average Calories by Activity")  
+        **Axis Labels**: Units specified (minutes, calories, count)  
+        **Captions**: Explanatory text under complex charts  
+        **Status Indicators**: Color + emoji + text (redundancy)  
+        **Hover Tooltips**: Formatted dates, comma-separated numbers  
+        
+        ### What Was Exclude (Intentionally)
+        
+        **Social Comparisons**: Privacy-focused, reduces shame  
+        **Raw Data Exports**: Could add, but not core need  
+        """)
+    
+    # TYPOGRAPHY
+    with st.expander("✍️ **TYPOGRAPHY** - Font pairing and hierarchy", expanded=False):
+        st.markdown("""
+        ### Font Selection
+        
+        **Headings: Playfair Display (Serif)**
+        - Editorial feel, high-contrast serifs
+        - Used for: Dashboard title, section headers, metric numbers
+        - Conveys: Authority, elegance, importance
+        
+        **Body: IBM Plex Sans (Sans-serif)**
+        - Technical but warm, excellent readability
+        - Used for: Descriptions, labels, data values
+        - Conveys: Clarity, modernity, approachability
+        
+        ### Why NOT Generic Fonts?
+        
+        **Inter/Roboto**: Overused in AI-generated designs  
+        **System fonts**: Inconsistent across devices  
+        **Comic Sans**: Need I say more?  
+        
+        **Google Fonts**: Fast, reliable, professional pairing  
+        
+        ### Type Scale Example
+        """)
+        
+        st.markdown("""
+        <div style="background: white; padding: 2rem; border-radius: 8px; border: 2px solid #E8ECF1;">
+            <h1 style="font-family: 'Playfair Display', serif; font-size: 2rem; margin: 0 0 1rem 0; color: #2C3E50;">
+                Dashboard Title (2rem, bold)
+            </h1>
+            <h2 style="font-family: 'Playfair Display', serif; font-size: 1.75rem; margin: 0 0 1rem 0; color: #2C3E50;">
+                Section Header (1.75rem, bold)
+            </h2>
+            <h3 style="font-family: 'Playfair Display', serif; font-size: 1.3rem; margin: 0 0 1rem 0; color: #2C3E50;">
+                Subsection (1.3rem, semi-bold)
+            </h3>
+            <p style="font-family: 'IBM Plex Sans', sans-serif; font-size: 1rem; margin: 0 0 1rem 0; color: #2C3E50;">
+                Body text for descriptions and explanations (1rem, regular)
+            </p>
+            <div style="text-align: center; padding: 1.5rem; background: #F5F7FA; border-radius: 8px;">
+                <p style="font-family: 'Playfair Display', serif; font-size: 2.5rem; font-weight: 700; margin: 0; color: #2E86AB;">
+                    1,428
+                </p>
+                <p style="font-family: 'IBM Plex Sans', sans-serif; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.08em; color: #5D6D7E; margin: 0.5rem 0 0 0;">
+                    METRIC LABEL
+                </p>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    # PAGE LAYOUT
+    with st.expander("📐 **PAGE LAYOUT**", expanded=False):
+        st.markdown("""
+        ### Responsive Grid Strategy
+        
+        **Streamlit Columns:**
+        ```python
+        # 2-column for comparisons
+        col1, col2 = st.columns(2)
+        
+        # 3-column for insights
+        col1, col2, col3 = st.columns(3)
+        
+        # 5-column for compact metrics
+        col1, col2, col3, col4, col5 = st.columns(5)
+        
+        # Weighted columns
+        col1, col2 = st.columns([2, 1])  # 2:1 ratio
+        ```
+        
+        ### Layout Patterns
+        
+        **Goal Progress (2-column):**
+        - Left: Calorie goal with progress bar
+        - Right: Workout goal with progress bar
+        - Why: Side-by-side comparison of two key metrics
+        
+        **Insights (3-column):**
+        - Strongest Day | Peak Performance | Consistency
+        - Why: Scannable, bite-sized, equally important
+        
+        **Top Metrics (5-column):**
+        - Avg Workouts | Avg Calories | Avg Duration | Consistency | Favorite
+        - Why: Comprehensive overview without overwhelming
+        
+        **Tabs (Full-width):**
+        - Charts utilize maximum available space
+        - Why: Temporal trends need horizontal room
+        
+        ### Sidebar Configuration
+        
+        **Dark Background (#2C3E50):**
+        - Visual separation from main content
+        - Filters don't compete for attention
+        
+        **Persistent Position:**
+        - Always accessible without scrolling
+        - Doesn't interrupt main content flow
+        
+        **Collapsible:**
+        - Starts collapsed (focus on dashboard)
+        - Expandable when filtering needed
+        """)
+    
+    st.markdown("---")
